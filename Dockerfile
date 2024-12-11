@@ -1,3 +1,6 @@
+# Use the latest Ubuntu 24.04 as the base image
+FROM ubuntu:24.04
+
 # Use the latest Ubuntu 24.04 as the base imageFROM ubuntu:24.04# Update the apt package index and install necessary tools
 RUN apt-get update && apt-get install -y \
     apt-transport-https \

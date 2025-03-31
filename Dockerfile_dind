@@ -1,0 +1,126 @@
+# Use Alpine with Docker-in-Docker (DinD)
+FROM docker:24.0-dind
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/opt/kafka/bin:${PATH}"
+ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk"
+
+# Add Alpine community repository
+RUN echo "🛠️ Adding Alpine community repository..." \
+    && echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories
+
+# Install core dependencies
+RUN echo "📦 Installing core dependencies..." \
+    && apk add --no-cache \
+    bash curl wget unzip file rsync tree vim jq git openjdk11 netcat-openbsd bind-tools \
+    nmap busybox-extras traceroute net-tools python3 python3-dev py3-pip ansible docker-cli \
+    docker-openrc make zip openssh-client gcc g++ zlib-dev libffi-dev openssl-dev bzip2-dev \
+    readline-dev sqlite-dev patch build-base musl-dev xz-dev tk-dev zsh shadow aws-cli flux \
+    kustomize kubectl asciinema
+
+# Install Zsh plugins
+RUN echo "🔧 Installing Zsh plugins..." \
+    && mkdir -p ~/.zsh/plugins \
+    && git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/plugins/zsh-autosuggestions \
+    && git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/plugins/zsh-syntax-highlighting
+
+# Set default shell to Zsh
+RUN echo "💻 Setting default shell to Zsh..." \
+    && chsh -s $(which zsh) root
+
+# Install Powerline inside a virtual environment
+RUN echo "⚡ Installing Powerline for better terminal experience..." \
+    && python3 -m venv /opt/powerline-venv \
+    && /opt/powerline-venv/bin/pip install powerline-status
+
+# Install Terraform
+RUN echo "🛠️ Installing Terraform..." \
+    && wget https://releases.hashicorp.com/terraform/1.0.9/terraform_1.0.9_linux_amd64.zip \
+    && unzip terraform_1.0.9_linux_amd64.zip \
+    && mv terraform /usr/local/bin/ \
+    && rm terraform_1.0.9_linux_amd64.zip
+
+# Install AWS SAM CLI
+RUN echo "☁️ Installing AWS SAM CLI..." \
+    && pip3 install --break-system-packages aws-sam-cli
+
+# Install Helm, Kustomize, Flux, Ansible, Kafka CLI
+RUN echo "📦 Installing Helm, Kustomize, Flux, Ansible, and Kafka CLI..." \
+    && pip3 install --break-system-packages helm kustomize flux ansible kafka-python
+
+# Install Pyenv and set up environment correctly
+RUN echo "🐍 Installing Pyenv and setting up environment..." \
+    && rm -rf ~/.pyenv \
+    && git clone https://github.com/pyenv/pyenv.git ~/.pyenv \
+    && echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /root/.zshrc \
+    && echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> /root/.zshrc \
+    && echo 'eval "$(pyenv init --path)"' >> /root/.zshrc \
+    && echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /root/.bashrc \
+    && echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> /root/.bashrc \
+    && echo 'eval "$(pyenv init --path)"' >> /root/.bashrc \
+    && echo 'export PYENV_ROOT="$HOME/.pyenv"' >> /root/.zshenv \
+    && echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> /root/.zshenv \
+    && echo 'eval "$(pyenv init --path)"' >> /root/.zshenv
+
+# Install the last 3 Python versions and set the defaultRUN echo "🐍 Installing the last 3 Python versions and setting the default..." \
+RUN echo "🐍🐍🐍 Installing the last 3 Python versions and setting the default..." \
+    && export PYENV_ROOT="$HOME/.pyenv" \
+    && export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH" \
+    && eval "$(pyenv init --path)" \
+    && CONFIGURE_OPTS='--enable-shared --enable-optimizations' \
+    && /bin/zsh -c 'pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]+$" | tail -n 3 | while read -r version; do \
+        echo "📌 Installing Python $version..."; \
+        if ! pyenv versions | grep -q "$version"; then pyenv install "$version"; fi; \
+    done; \
+    latest_python=$(pyenv versions --bare | tail -n 1); \
+    echo "🐍 Setting global Python version to $latest_python"; \
+    pyenv global "$latest_python"; \
+    pyenv rehash'
+
+RUN 
+
+# Ensure Pyenv is correctly initialized on shell startup
+RUN echo "🔄 Ensuring Pyenv is initialized for all shells..." \
+    && echo 'eval "$(pyenv init -)"' >> /root/.zshrc \
+    && echo 'eval "$(pyenv init -)"' >> /root/.zshenv
+
+# Install Kafka CLI
+RUN echo "📡 Installing Kafka CLI..." \
+    && wget https://archive.apache.org/dist/kafka/3.7.0/kafka_2.13-3.7.0.tgz \
+    && tar -xzf kafka_2.13-3.7.0.tgz \
+    && mv kafka_2.13-3.7.0 /opt/kafka \
+    && rm kafka_2.13-3.7.0.tgz
+
+# Set up Zsh configuration
+RUN echo "⚙️ Configuring Zsh..." \
+    && echo 'export TERM=xterm-256color' > /root/.zshrc \
+    && echo 'autoload -Uz compinit && compinit' >> /root/.zshrc \
+    && echo 'source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh' >> /root/.zshrc \
+    && echo 'source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh' >> /root/.zshrc \
+    && echo 'export PATH="/opt/powerline-venv/bin:$PATH"' >> /root/.zshrc \
+    && echo 'POWERLEVEL9K_MODE="nerdfont-complete"' >> /root/.zshrc \
+    && echo 'PROMPT="%F{cyan}%n@%m %F{yellow}%~%f $ "' >> /root/.zshrc \
+    && echo 'alias k="kubectl"' >> /root/.zshrc \
+    && echo 'alias d="docker"' >> /root/.zshrc \
+    && echo 'alias c="clear"' >> /root/.zshrc \
+    && echo 'alias e="exit"' >> /root/.zshrc \
+    && echo 'alias t="terraform"' >> /root/.zshrc \
+    && echo 'alias a="ansible"' >> /root/.zshrc \
+    && echo 'alias h="helm"' >> /root/.zshrc \
+    && echo 'alias f="flux"' >> /root/.zshrc \
+    && echo 'alias kz="kustomize"' >> /root/.zshrc \
+    && echo 'alias ll="ls -al --color=auto"' >> /root/.zshrc \
+    && echo 'alias pyv="python --version"' >> ~/.zshrc \
+    && echo 'alias pyev="pyenv versions"' >> ~/.zshrc
+
+
+# Ensure `.zshrc` gets sourced when opening the shell
+RUN echo "🔄 Ensuring .zshrc is sourced on startup..." \
+    && echo "source ~/.zshrc" >> /root/.zshenv
+
+# Set default user
+USER root
+
+# Default command
+CMD ["zsh"]

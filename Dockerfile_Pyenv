@@ -1,0 +1,226 @@
+# Use the latest Ubuntu 24.04 as the base image
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update the apt package index and install necessary tools
+RUN apt-get update && apt-get install -y \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    software-properties-common \
+    wget \
+    unzip \
+    file \
+    rsync \
+    tree \
+    vim \
+    netcat-openbsd \
+    nmap \
+    telnet \
+    traceroute \
+    gnupg \
+    lsb-release \
+    jq \
+    openjdk-11-jdk \
+    dnsutils \
+    net-tools \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    wget \
+    curl \
+    llvm \
+    libncurses5-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libffi-dev \
+    liblzma-dev \
+    python3-openssl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python 3.12.6
+RUN wget https://www.python.org/ftp/python/3.12.6/Python-3.12.6.tgz \
+    && tar xzf Python-3.12.6.tgz \
+    && cd Python-3.12.6 \
+    && ./configure --enable-optimizations \
+    && make altinstall \
+    && cd .. \
+    && rm -rf Python-3.12.6 Python-3.12.6.tgz
+
+# Set Python 3.12.6 as the default Python version
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/local/bin/python3.12 1
+
+# Install pip
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+
+# Install Ansible using pip
+RUN pip install ansible
+
+# Manually install sops from GitHub releases
+RUN curl -LO https://github.com/mozilla/sops/releases/download/v3.7.3/sops-v3.7.3.linux \
+    && chmod +x sops-v3.7.3.linux \
+    && mv sops-v3.7.3.linux /usr/local/bin/sops
+
+# Remove old AWS CLI installation
+# Install AWS CLI v2.24.2 for ARM64
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64-2.24.2.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf awscliv2.zip aws
+
+# Move version check to end of file
+# Add platform check
+RUN uname -a && aws --version
+
+# Install kubectl
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && chmod +x kubectl \
+    && mv kubectl /usr/local/bin/
+
+# Install Terraform
+RUN apt-get update && apt-get install -y gnupg software-properties-common \
+    && curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list \
+    && apt-get update && apt-get install -y terraform
+
+# Install Terragrunt
+RUN curl -L https://github.com/gruntwork-io/terragrunt/releases/download/v0.35.16/terragrunt_linux_amd64 -o /usr/local/bin/terragrunt \
+    && chmod +x /usr/local/bin/terragrunt
+
+RUN apt update && apt upgrade -y && \
+apt install -y curl unzip software-properties-common gnupg2
+
+# Install Helm
+RUN curl -fsSL https://get.helm.sh/helm-v3.12.3-linux-amd64.tar.gz -o helm.tar.gz \
+    && tar -zxvf helm.tar.gz \
+    && mv linux-amd64/helm /usr/local/bin/helm \
+    && chmod +x /usr/local/bin/helm \
+    && rm -rf linux-amd64 helm.tar.gz
+
+# Install Kustomize
+RUN curl -LO "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.0.0/kustomize_v5.0.0_linux_amd64.tar.gz" \
+    && tar -zxvf kustomize_v5.0.0_linux_amd64.tar.gz \
+    && mv kustomize /usr/local/bin/ \
+    && chmod +x /usr/local/bin/kustomize \
+    && rm kustomize_v5.0.0_linux_amd64.tar.gz
+
+# Install Flux
+RUN curl -s https://fluxcd.io/install.sh | bash
+
+# Install Helmfile
+RUN curl -LO https://github.com/roboll/helmfile/releases/download/v0.143.0/helmfile_linux_amd64 \
+    && chmod +x helmfile_linux_amd64 \
+    && mv helmfile_linux_amd64 /usr/local/bin/helmfile
+# Install Apache Kafka CLI tools and configure Amazon MSK IAM Authentication
+RUN apt-get update && apt-get install -y openjdk-11-jdk && \
+    export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64 && \
+    export PATH=$PATH:$JAVA_HOME/bin && \
+    wget https://archive.apache.org/dist/kafka/2.8.1/kafka_2.12-2.8.1.tgz && \
+    tar -xzf kafka_2.12-2.8.1.tgz && \
+    mv kafka_2.12-2.8.1 /opt/kafka && \
+    rm kafka_2.12-2.8.1.tgz
+
+#Session manager plugin
+
+# Install Session Manager Plugin
+RUN curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/ubuntu_arm64/session-manager-plugin.deb" -o "session-manager-plugin.deb" \
+    && dpkg -i session-manager-plugin.deb \
+    && rm session-manager-plugin.deb
+
+# Verify the installation
+RUN session-manager-plugin --version
+
+
+# ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
+RUN export AWS_SSL_NO_VERIFY=true
+
+# Add Kafka CLI tools to PATH
+ENV PATH="/opt/kafka/bin:${PATH}"
+ENV JAVA_HOME="/usr/lib/jvm/java-11-openjdk-arm64"
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+
+# Add client.properties for Amazon MSK
+# Add client.properties for Amazon MSK
+RUN echo "security.protocol=SASL_SSL" > /opt/kafka/bin/client.properties && \
+    echo "sasl.mechanism=AWS_MSK_IAM" >> /opt/kafka/bin/client.properties && \
+    echo "sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required;" >> /opt/kafka/bin/client.properties && \
+    echo "sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler" >> /opt/kafka/bin/client.properties
+
+RUN kubectl version --client=true
+
+# Install AWS MSK IAM Authentication JAR
+RUN wget https://github.com/aws/aws-msk-iam-auth/releases/latest/download/aws-msk-iam-auth-2.2.0-all.jar -O /opt/kafka/libs/aws-msk-iam-auth-2.2.0-all.jar --no-check-certificate
+RUN ls /opt/kafka/libs | grep aws-msk-iam-auth
+ENV CLASSPATH=/opt/kafka/libs/aws-msk-iam-auth-2.2.0-all.jar
+RUN echo 'export CLASSPATH=$CLASSPATH:/opt/kafka/libs/aws-msk-iam-auth-2.2.0-all.jar' >> ~/.bashrc
+
+ENV CLASSPATH=$CLASSPATH:/opt/kafka/libs/aws-msk-iam-auth-2.2.0-all.jar
+
+# AWS SAM CLI
+RUN curl -LO "https://github.com/aws/aws-sam-cli/releases/latest/download/aws-sam-cli-linux-arm64.zip" \
+    && unzip aws-sam-cli-linux-arm64.zip -d sam-installation \
+    && ./sam-installation/install \
+    && rm -rf aws-sam-cli-linux-arm64.zip sam-installation \
+    && sam --version
+
+# Add HashiCorp GPG key and repository
+RUN wget -O- https://apt.releases.hashicorp.com/gpg | tee /usr/share/keyrings/hashicorp-archive-keyring.gpg >/dev/null \
+    && echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com noble main" | tee /etc/apt/sources.list.d/hashicorp.list \
+    && apt update && apt upgrade -y
+
+# Verify terraform
+RUN terraform version
+
+# Verify terragrunt
+RUN terragrunt --version
+
+# Verify AWS CLI
+RUN aws --version
+
+# Verify Ansible
+RUN ansible --version
+
+# Verify Helm
+RUN helm version
+
+# Verify Kustomize
+RUN kustomize version
+
+# Verify Flux
+RUN flux --version
+
+# Verify Helmfile
+RUN helmfile --version
+
+# Verify SOPS
+RUN sops --version
+
+USER root
+
+# Default command
+
+# Add useful aliases
+RUN echo "alias k='kubectl'" >> /root/.bashrc && \
+    echo "alias d='docker'" >> /root/.bashrc && \
+    echo "alias c='clear'" >> /root/.bashrc && \
+    echo "alias e='exit'" >> /root/.bashrc && \
+    echo "alias t='terraform'" >> /root/.bashrc && \
+    echo "alias a='ansible'" >> /root/.bashrc && \
+    echo "alias h='helm'" >> /root/.bashrc && \
+    echo "alias f='flux'" >> /root/.bashrc && \
+    echo "alias kz='kustomize'" >> /root/.bashrc && \
+    echo "alias tg='terragrunt'" >> /root/.bashrc && \
+    echo "alias hf='helmfile'" >> /root/.bashrc
+
+USER root
+
+# Default command
+CMD [ "bash" ]

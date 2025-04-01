@@ -34,6 +34,14 @@ RUN echo "⚡ Installing Powerline for better terminal experience..." \
     && python3 -m venv /opt/powerline-venv \
     && /opt/powerline-venv/bin/pip install powerline-status
 
+    RUN echo "🔍 Installing k9s..." \
+    && K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | jq -r .tag_name) \
+    && wget https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz \
+    && tar -xzf k9s_Linux_amd64.tar.gz \
+    && mv k9s /usr/local/bin/ \
+    && chmod +x /usr/local/bin/k9s \
+    && rm -rf k9s_Linux_amd64.tar.gz
+
 # Install Terraform
 RUN echo "🛠️ Installing Terraform..." \
     && wget https://releases.hashicorp.com/terraform/1.0.9/terraform_1.0.9_linux_amd64.zip \

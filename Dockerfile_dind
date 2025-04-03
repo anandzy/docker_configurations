@@ -86,7 +86,7 @@ RUN echo "🐍🐍🐍 Installing the last 3 Python versions and setting the def
     pyenv global "$latest_python"; \
     pyenv rehash'
 
-RUN 
+WORKDIR /root
 
 # Ensure Pyenv is correctly initialized on shell startup
 RUN echo "🔄 Ensuring Pyenv is initialized for all shells..." \
@@ -120,7 +120,8 @@ RUN echo "⚙️ Configuring Zsh..." \
     && echo 'alias kz="kustomize"' >> /root/.zshrc \
     && echo 'alias ll="ls -al --color=auto"' >> /root/.zshrc \
     && echo 'alias pyv="python --version"' >> ~/.zshrc \
-    && echo 'alias pyev="pyenv versions"' >> ~/.zshrc
+    && echo 'alias pyev="pyenv versions"' >> ~/.zshrc \
+    && echo 'alias s3="aws s3 ls"' >> ~/.zshrc \
 
 
 # Ensure `.zshrc` gets sourced when opening the shell

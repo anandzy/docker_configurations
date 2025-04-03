@@ -86,8 +86,6 @@ RUN echo "🐍🐍🐍 Installing the last 3 Python versions and setting the def
     pyenv global "$latest_python"; \
     pyenv rehash'
 
-WORKDIR /root
-
 # Ensure Pyenv is correctly initialized on shell startup
 RUN echo "🔄 Ensuring Pyenv is initialized for all shells..." \
     && echo 'eval "$(pyenv init -)"' >> /root/.zshrc \
@@ -127,6 +125,8 @@ RUN echo "⚙️ Configuring Zsh..." \
 # Ensure `.zshrc` gets sourced when opening the shell
 RUN echo "🔄 Ensuring .zshrc is sourced on startup..." \
     && echo "source ~/.zshrc" >> /root/.zshenv
+
+WORKDIR /root
 
 # Set default user
 USER root

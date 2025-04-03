@@ -108,8 +108,8 @@ RUN echo "export TERM=xterm-256color" >> /root/.zshrc \
  && echo "alias kapivers=\"kubectl api-versions\"" >> /root/.zshrc \
  && echo "alias kapischema=\"kubectl explain services\"" >> /root/.zshrc \
  && echo "alias kskel=\"kubectl create --dry-run=client -o yaml\"" >> /root/.zshrc \
- && echo "alias kskeljson=\"kubectl create configmap my-config --from-literal=env=prod --dry-run=client -o yaml\"" >> /root/.zshrc \
- && echo "alias s3=\"aws s3 ls\" >> /root/.zshrc
+ && echo "alias kskeljson=\"kubectl create configmap my-config --from-literal=env=prod --dry-run=client -o yaml\"" >> /root/.zshrc
+
 RUN echo "🔄 Ensuring .zshrc is sourced on startup..." \
  && echo "source ~/.zshrc" >> /root/.zshenv
 

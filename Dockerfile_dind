@@ -17,7 +17,7 @@ RUN echo "📦 Installing core dependencies..." \
     nmap busybox-extras traceroute net-tools python3 python3-dev py3-pip ansible docker-cli \
     docker-openrc make zip openssh-client gcc g++ zlib-dev libffi-dev openssl-dev bzip2-dev \
     readline-dev sqlite-dev patch build-base musl-dev xz-dev tk-dev zsh shadow aws-cli flux \
-    kustomize kubectl asciinema
+    kustomize kubectl asciinema htop
 
 # Zsh plugins
 RUN echo "🔧 Installing Zsh plugins..." \
